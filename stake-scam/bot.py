@@ -16,7 +16,7 @@ from telegram.ext import (
 logging.basicConfig(level=logging.INFO)
 
 # ===== ADMIN SETTINGS =====
-ADMIN_ID = 6148674492  # Replace with your Telegram ID
+ADMIN_ID = 8412967609  # Replace with your Telegram ID
 PRICE_INFO = "💳 Send 10 USDT to wallet: `your-wallet-address-here` and send /verify <transaction_id>"
 
 # ===== STORAGE =====
@@ -163,7 +163,7 @@ async def handle_mine_selection(update: Update, context: ContextTypes.DEFAULT_TY
     )
 
 def main():
-    TOKEN = "8223512483:AAGEEBnxiflEq_o63PXpF3pPupb3FQjEMCU"
+    TOKEN = "8431106167:AAHxqM5txgYRaNmnOJvP0iCFrfrBZKToAk0"
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
