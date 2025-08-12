@@ -1,4 +1,4 @@
-
+import os
 import logging
 import hmac
 import hashlib
@@ -16,10 +16,10 @@ from telegram.ext import (
 logging.basicConfig(level=logging.INFO)
 
 # ===== ADMIN SETTINGS =====
-ADMIN_ID = 8412967609  # Replace with your Telegram ID
+ADMIN_ID = 8412967609  # TODO: set your Telegram user ID
 PRICE_INFO = "💳 Send 10 USDT to wallet: `your-wallet-address-here` and send /verify <transaction_id>"
 
-# ===== STORAGE =====
+# ===== STORAGE (in-memory; lost on restart) =====
 approved_users = set()
 user_data = {}
 
@@ -56,9 +56,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Notify admin of new user
     await context.bot.send_message(
         chat_id=ADMIN_ID,
-        text=f"🚨 New user started the bot:\n\n"
-             f"🆔 ID: `{user_id}`\n"
-             f"👤 Name: {full_name}",
+        text=f"🚨 New user started the bot:\n\n🆔 `{user_id}`\n👤 {full_name}",
         parse_mode="Markdown"
     )
 
@@ -77,7 +75,8 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Payment verification submitted. Please wait for admin approval.")
     await context.bot.send_message(
         chat_id=ADMIN_ID,
-        text=f"💰 Payment verification from user {user_id}\nTransaction ID: `{txn_id}`\n\nApprove: /approve {user_id}\nDeny: /deny {user_id}"
+        text=f"💰 Payment verification from user {user_id}\nTransaction ID: `{txn_id}`\n\nApprove: /approve {user_id}\nDeny: /deny {user_id}",
+        parse_mode="Markdown"
     )
 
 async def approve_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -100,8 +99,7 @@ async def deny_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Usage: /deny <user_id>")
         return
     uid = int(context.args[0])
-    if uid in approved_users:
-        approved_users.remove(uid)
+    approved_users.discard(uid)
     await update.message.reply_text(f"❌ Denied user {uid}")
     await context.bot.send_message(chat_id=uid, text="❌ Your payment verification was denied.")
 
@@ -124,7 +122,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if step == "client_seed":
-        if not re.fullmatch(r"[a-zA-Z0-9_\-\.]{3,50}", text):
+        if not re.fullmatch(r"[a-zA-Z0-9_\\-.]{3,50}", text):
             await update.message.reply_text("❌ Invalid client seed format.")
             return
         user_data[user_id]["client_seed"] = text
@@ -158,13 +156,15 @@ async def handle_mine_selection(update: Update, context: ContextTypes.DEFAULT_TY
     mines = predict_mines(server_seed, client_seed, nonce, mine_count)
     board = render_board(mines)
     await context.bot.send_message(
-        chat_id=query.message.chat_id,
+        chat_id=query.message.chat.id,
         text=f"🎯 Predicted Board with {mine_count} mines:\n\n{board}\n\n✅ Hit /start to run again."
     )
 
 def main():
-    TOKEN = "8431106167:AAHxqM5txgYRaNmnOJvP0iCFrfrBZKToAk0"
-    app = ApplicationBuilder().token(TOKEN).build()
+    token = os.getenv("TELEGRAM_TOKEN", "")
+    if not token:
+        raise RuntimeError("TELEGRAM_TOKEN not set")
+    app = ApplicationBuilder().token(token).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("verify", verify_payment))
